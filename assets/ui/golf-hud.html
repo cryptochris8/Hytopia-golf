@@ -1,0 +1,503 @@
+<!-- Golf Game HUD - Following Hytopia UI Guidelines -->
+<style>
+  /* Golf HUD Styles */
+  .golf-hud {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    font-family: Arial, sans-serif;
+    color: white;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+  }
+
+  .golf-hud * {
+    pointer-events: auto;
+  }
+
+  /* Power Meter */
+  .power-meter {
+    position: absolute;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 300px;
+    background: rgba(0,0,0,0.7);
+    border-radius: 10px;
+    padding: 15px;
+    display: none;
+  }
+
+  .power-meter.charging {
+    display: block;
+  }
+
+  .power-bar {
+    width: 100%;
+    height: 20px;
+    background: #333;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 2px solid #fff;
+  }
+
+  .power-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4CAF50 0%, #FFEB3B 50%, #F44336 100%);
+    width: 0%;
+    transition: width 0.1s ease;
+  }
+
+  .power-text {
+    text-align: center;
+    margin-bottom: 10px;
+    font-weight: bold;
+  }
+
+  /* Score Display */
+  .score-display {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(0,0,0,0.8);
+    padding: 15px;
+    border-radius: 10px;
+    min-width: 200px;
+  }
+
+  .score-title {
+    font-weight: bold;
+    margin-bottom: 10px;
+    font-size: 16px;
+  }
+
+  .score-item {
+    margin: 5px 0;
+    font-size: 14px;
+  }
+
+  /* Game Status */
+  .game-status {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    background: rgba(0,0,0,0.8);
+    padding: 15px;
+    border-radius: 10px;
+    min-width: 250px;
+  }
+
+  .status-title {
+    font-weight: bold;
+    margin-bottom: 10px;
+    font-size: 16px;
+  }
+
+  .status-item {
+    margin: 5px 0;
+    font-size: 14px;
+  }
+
+  .status-item.current-player {
+    color: #4CAF50;
+    font-weight: bold;
+  }
+
+  /* Controls Help */
+  .controls {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    background: rgba(0,0,0,0.7);
+    padding: 15px;
+    border-radius: 10px;
+    max-width: 300px;
+  }
+
+  .controls-title {
+    font-weight: bold;
+    margin-bottom: 10px;
+    font-size: 16px;
+  }
+
+  .control-item {
+    margin: 3px 0;
+    font-size: 12px;
+  }
+
+  /* Messages */
+  .message-display {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0,0,0,0.9);
+    padding: 20px;
+    border-radius: 15px;
+    text-align: center;
+    display: none;
+    z-index: 1000;
+  }
+
+  .message-display.show {
+    display: block;
+  }
+
+  .message-title {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 10px;
+  }
+
+  .message-content {
+    font-size: 16px;
+  }
+
+  /* Aiming indicator */
+  .aiming-indicator {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px;
+    height: 20px;
+    border: 2px solid #4CAF50;
+    border-radius: 50%;
+    display: none;
+  }
+
+  .aiming-indicator.active {
+    display: block;
+    animation: pulse 1s infinite;
+  }
+
+  @keyframes pulse {
+    0% { transform: translate(-50%, -50%) scale(1); }
+    50% { transform: translate(-50%, -50%) scale(1.2); }
+    100% { transform: translate(-50%, -50%) scale(1); }
+  }
+
+  /* Leaderboard */
+  .leaderboard {
+    position: absolute;
+    top: 200px;
+    right: 20px;
+    background: rgba(0,0,0,0.8);
+    padding: 15px;
+    border-radius: 10px;
+    min-width: 200px;
+    display: none;
+  }
+
+  .leaderboard.show {
+    display: block;
+  }
+
+  .leaderboard-title {
+    font-weight: bold;
+    margin-bottom: 10px;
+    font-size: 16px;
+    text-align: center;
+  }
+
+  .leaderboard-item {
+    margin: 5px 0;
+    font-size: 14px;
+    padding: 5px;
+    border-radius: 5px;
+  }
+
+  .leaderboard-item.first {
+    background: rgba(255, 215, 0, 0.3); /* Gold */
+  }
+
+  .leaderboard-item.second {
+    background: rgba(192, 192, 192, 0.3); /* Silver */
+  }
+
+  .leaderboard-item.third {
+    background: rgba(205, 127, 50, 0.3); /* Bronze */
+  }
+</style>
+
+<div class="golf-hud">
+  <!-- Power Meter -->
+  <div class="power-meter" id="powerMeter">
+    <div class="power-text">Power: <span id="powerValue">0</span>%</div>
+    <div class="power-bar">
+      <div class="power-fill" id="powerFill"></div>
+    </div>
+  </div>
+
+  <!-- Score Display -->
+  <div class="score-display" id="scoreDisplay">
+    <div class="score-title">Your Score</div>
+    <div class="score-item">Hole: <span id="currentHole">1</span> of <span id="totalHoles">3</span></div>
+    <div class="score-item">Par: <span id="holePar">3</span></div>
+    <div class="score-item">Strokes: <span id="strokeCount">0</span></div>
+    <div class="score-item">Total: <span id="totalStrokes">0</span></div>
+  </div>
+
+  <!-- Game Status -->
+  <div class="game-status" id="gameStatus">
+    <div class="status-title">Game Status</div>
+    <div class="status-item">Course: <span id="courseName">Default Course</span></div>
+    <div class="status-item">Current Player: <span id="currentPlayerName">Waiting...</span></div>
+    <div class="status-item" id="yourTurnIndicator">Waiting for turn...</div>
+  </div>
+
+  <!-- Controls Help -->
+  <div class="controls" id="controlsHelp">
+    <div class="controls-title">Golf Controls</div>
+    <div class="control-item">🎯 Mouse: Aim direction</div>
+    <div class="control-item">⚡ SPACE: Hold to charge power</div>
+    <div class="control-item">🎥 F: Toggle aiming mode</div>
+    <div class="control-item">🔄 R: Reset ball position</div>
+    <div class="control-item">💬 Enter: Open chat</div>
+  </div>
+
+  <!-- Aiming Indicator -->
+  <div class="aiming-indicator" id="aimingIndicator"></div>
+
+  <!-- Message Display -->
+  <div class="message-display" id="messageDisplay">
+    <div class="message-title" id="messageTitle">Message</div>
+    <div class="message-content" id="messageContent">Content</div>
+  </div>
+
+  <!-- Leaderboard -->
+  <div class="leaderboard" id="leaderboard">
+    <div class="leaderboard-title">Leaderboard</div>
+    <div id="leaderboardContent">
+      <!-- Dynamically populated -->
+    </div>
+  </div>
+</div>
+
+<script>
+  // Golf Game UI Controller - Following Hytopia UI Guidelines
+  console.log('Golf HUD loaded');
+
+  // UI state
+  let gameState = {
+    inProgress: false,
+    isYourTurn: false,
+    isAiming: false,
+    power: 0,
+    maxPower: 100,
+  };
+
+  // UI elements
+  const powerMeter = document.getElementById('powerMeter');
+  const powerFill = document.getElementById('powerFill');
+  const powerValue = document.getElementById('powerValue');
+  const aimingIndicator = document.getElementById('aimingIndicator');
+  const messageDisplay = document.getElementById('messageDisplay');
+  const messageTitle = document.getElementById('messageTitle');
+  const messageContent = document.getElementById('messageContent');
+  const currentHole = document.getElementById('currentHole');
+  const totalHoles = document.getElementById('totalHoles');
+  const holePar = document.getElementById('holePar');
+  const strokeCount = document.getElementById('strokeCount');
+  const totalStrokes = document.getElementById('totalStrokes');
+  const currentPlayerName = document.getElementById('currentPlayerName');
+  const yourTurnIndicator = document.getElementById('yourTurnIndicator');
+  const leaderboard = document.getElementById('leaderboard');
+  const leaderboardContent = document.getElementById('leaderboardContent');
+
+  // Listen for data from server using Hytopia's onData method
+  hytopia.onData(data => {
+    console.log('Golf UI received data:', data);
+
+    switch (data.type) {
+      case 'golf-init':
+        handleGolfInit(data);
+        break;
+      case 'golf-power-meter':
+        handlePowerMeter(data);
+        break;
+      case 'golf-aiming':
+        handleAiming(data);
+        break;
+      case 'golf-turn-start':
+        handleTurnStart(data);
+        break;
+      case 'golf-turn-end':
+        handleTurnEnd(data);
+        break;
+      case 'golf-game-state':
+        handleGameState(data);
+        break;
+      case 'golf-hole-start':
+        handleHoleStart(data);
+        break;
+      case 'golf-hole-complete':
+        handleHoleComplete(data);
+        break;
+      case 'golf-shot-executed':
+        handleShotExecuted(data);
+        break;
+      case 'golf-penalty':
+        handlePenalty(data);
+        break;
+      case 'golf-message':
+        handleMessage(data);
+        break;
+      case 'golf-game-end':
+        handleGameEnd(data);
+        break;
+    }
+  });
+
+  function handleGolfInit(data) {
+    console.log('Golf game initialized for player:', data.playerName);
+    showMessage('Welcome to Golf!', 'Use the controls to play. Good luck!', 3000);
+  }
+
+  function handlePowerMeter(data) {
+    gameState.power = data.power;
+    gameState.maxPower = data.maxPower;
+
+    // Update power meter display
+    const powerPercent = (data.power / data.maxPower) * 100;
+    powerFill.style.width = powerPercent + '%';
+    powerValue.textContent = Math.round(powerPercent);
+
+    // Show/hide power meter based on charging state
+    if (data.isCharging) {
+      powerMeter.classList.add('charging');
+    } else {
+      powerMeter.classList.remove('charging');
+    }
+  }
+
+  function handleAiming(data) {
+    gameState.isAiming = data.isAiming;
+
+    if (data.isAiming) {
+      aimingIndicator.classList.add('active');
+    } else {
+      aimingIndicator.classList.remove('active');
+    }
+  }
+
+  function handleTurnStart(data) {
+    gameState.isYourTurn = true;
+    yourTurnIndicator.textContent = 'YOUR TURN!';
+    yourTurnIndicator.classList.add('current-player');
+    
+    strokeCount.textContent = data.shotCount || 0;
+    
+    showMessage('Your Turn!', data.message || 'Time to golf!', 2000);
+  }
+
+  function handleTurnEnd(data) {
+    gameState.isYourTurn = false;
+    yourTurnIndicator.textContent = 'Waiting for turn...';
+    yourTurnIndicator.classList.remove('current-player');
+    
+    strokeCount.textContent = data.shotCount || 0;
+  }
+
+  function handleGameState(data) {
+    gameState.inProgress = data.inProgress;
+    gameState.isYourTurn = data.isYourTurn;
+
+    // Update game status
+    currentHole.textContent = data.currentHole || 1;
+    totalHoles.textContent = data.totalHoles || 3;
+    currentPlayerName.textContent = data.currentPlayer || 'Unknown';
+
+    // Update leaderboard
+    if (data.leaderboard && data.leaderboard.length > 0) {
+      updateLeaderboard(data.leaderboard);
+    }
+
+    // Update turn indicator
+    if (data.isYourTurn) {
+      yourTurnIndicator.textContent = 'YOUR TURN!';
+      yourTurnIndicator.classList.add('current-player');
+    } else {
+      yourTurnIndicator.textContent = 'Waiting for turn...';
+      yourTurnIndicator.classList.remove('current-player');
+    }
+  }
+
+  function handleHoleStart(data) {
+    currentHole.textContent = data.holeNumber;
+    holePar.textContent = data.par;
+    
+    showMessage(`Hole ${data.holeNumber}`, `${data.holeName} - Par ${data.par}`, 3000);
+  }
+
+  function handleHoleComplete(data) {
+    const message = `${data.player} completed the hole!`;
+    const details = `${data.strokes} strokes - ${data.scoreMessage}`;
+    
+    showMessage(message, details, 4000);
+  }
+
+  function handleShotExecuted(data) {
+    strokeCount.textContent = data.shotCount;
+    
+    const powerText = Math.round((data.power / 100) * 100);
+    showMessage('Shot Executed!', `Power: ${powerText}%`, 1500);
+  }
+
+  function handlePenalty(data) {
+    showMessage('Penalty!', data.message, 3000);
+  }
+
+  function handleMessage(data) {
+    showMessage('Info', data.message, 2000);
+  }
+
+  function handleGameEnd(data) {
+    const winnerMessage = `Game Over! Winner: ${data.winner}`;
+    let scoresText = 'Final Scores:\n';
+    
+    data.finalScores.forEach((score, index) => {
+      scoresText += `${index + 1}. ${score.playerName}: ${score.totalStrokes} strokes\n`;
+    });
+    
+    showMessage(winnerMessage, scoresText, 8000);
+  }
+
+  function updateLeaderboard(leaderboardData) {
+    leaderboardContent.innerHTML = '';
+    
+    leaderboardData.forEach((player, index) => {
+      const item = document.createElement('div');
+      item.className = 'leaderboard-item';
+      
+      if (index === 0) item.classList.add('first');
+      else if (index === 1) item.classList.add('second');
+      else if (index === 2) item.classList.add('third');
+      
+      item.textContent = `${index + 1}. ${player.playerName}: ${player.totalStrokes}`;
+      leaderboardContent.appendChild(item);
+    });
+    
+    leaderboard.classList.add('show');
+  }
+
+  function showMessage(title, content, duration = 3000) {
+    messageTitle.textContent = title;
+    messageContent.textContent = content;
+    messageDisplay.classList.add('show');
+    
+    setTimeout(() => {
+      messageDisplay.classList.remove('show');
+    }, duration);
+  }
+
+  // Send periodic heartbeat to server (optional)
+  setInterval(() => {
+    hytopia.sendData({
+      type: 'golf-ui-heartbeat',
+      timestamp: Date.now(),
+    });
+  }, 10000); // Every 10 seconds
+</script>
